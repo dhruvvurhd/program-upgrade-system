@@ -1,0 +1,60 @@
+name: Build Solana Program
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        
+    - name: Cache Solana
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/solana
+          ~/.local/share/solana
+        key: ${{ runner.os }}-solana-1.18.26
+        
+    - name: Install Solana
+      run: |
+        sh -c "$(curl -sSfL https://release.solana.com/v1.18.26/install)"
+        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+        
+    - name: Verify Solana
+      run: |
+        solana --version
+        
+    - name: Install Anchor
+      run: |
+        cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli --locked --force
+        
+    - name: Verify Anchor
+      run: anchor --version
+      
+    - name: Build program
+      working-directory: ./program-upgrade-system
+      run: |
+        anchor build
+        
+    - name: Upload compiled program
+      uses: actions/upload-artifact@v3
+      with:
+        name: solana-program
+        path: |
+          program-upgrade-system/target/deploy/program_upgrade_system.so
+          program-upgrade-system/target/idl/program_upgrade_system.json
+        retention-days: 7
