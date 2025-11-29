@@ -13,7 +13,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Install Rust
       uses: actions-rs/toolchain@v1
@@ -22,7 +22,7 @@ jobs:
         override: true
         
     - name: Cache Solana
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/solana
@@ -46,15 +46,14 @@ jobs:
       run: anchor --version
       
     - name: Build program
-      working-directory: ./program-upgrade-system
       run: |
         anchor build
         
     - name: Upload compiled program
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: solana-program
         path: |
-          program-upgrade-system/target/deploy/program_upgrade_system.so
-          program-upgrade-system/target/idl/program_upgrade_system.json
+          target/deploy/program_upgrade_system.so
+          target/idl/program_upgrade_system.json
         retention-days: 7
