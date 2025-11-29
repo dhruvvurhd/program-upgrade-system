@@ -5,3 +5,16 @@ target
 node_modules
 test-ledger
 .yarn
+validator-run
+*.txt
+patch_idl.js
+idl_minimal.json
+idl_temp_full.json
+MENTOR_DEMO_GUIDE.md
+TEST_RESULTS.md
+ASSIGNMENT_VERIFICATION.md
+ERRORS_FIXED.md
+IMPLEMENTATION_GUIDE.md
+PROJECT_SUMMARY.md
+QUICKSTART_TEST.md
+GITHUB_BUILD_GUIDE.md
