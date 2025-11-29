@@ -23,14 +23,12 @@ jobs:
     - name: Verify Solana
       run: solana --version
         
-    - name: Install AVM
-      run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
-        
-    - name: Install Anchor
+    - name: Install Anchor CLI
       run: |
-        avm install 0.30.1
-        avm use 0.30.1
-        anchor --version
+        cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli --locked
+        
+    - name: Verify Anchor
+      run: anchor --version
         
     - name: Build
       run: anchor build
