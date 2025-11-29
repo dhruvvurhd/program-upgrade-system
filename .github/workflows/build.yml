@@ -16,26 +16,24 @@ jobs:
       
     - name: Install Solana
       run: |
-        sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)"
-        export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-        solana --version
+        wget https://github.com/solana-labs/solana/releases/download/v1.18.17/solana-release-x86_64-unknown-linux-gnu.tar.bz2
+        tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
+        echo "$PWD/solana-release/bin" >> $GITHUB_PATH
+        
+    - name: Verify Solana
+      run: solana --version
         
     - name: Install AVM
-      run: |
-        export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-        cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+      run: cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
         
     - name: Install Anchor
       run: |
-        export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"
         avm install 0.30.1
         avm use 0.30.1
         anchor --version
         
     - name: Build
-      run: |
-        export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$PATH"
-        anchor build
+      run: anchor build
         
     - uses: actions/upload-artifact@v4
       with:
