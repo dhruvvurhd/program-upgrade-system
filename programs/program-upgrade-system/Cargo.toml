@@ -21,7 +21,7 @@ custom-panic = []
 
 
 [dependencies]
-anchor-lang = "0.30.1"
+anchor-lang = "0.29.0"
 toml_parser = "=1.0.0"
 
 # Force old versions compatible with Rust 1.75.0-dev
