@@ -18,10 +18,11 @@ jobs:
       
     - name: Install Solana
       run: |
-        wget -O - https://release.solana.com/v1.18.26/solana-release-x86_64-unknown-linux-gnu.tar.bz2 | tar jxf -
-        echo "$PWD/solana-release/bin" >> $GITHUB_PATH
-        export PATH="$PWD/solana-release/bin:$PATH"
-        solana --version
+        sh -c "$(curl -sSfL https://release.solana.com/v1.18.26/install)"
+        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+      
+    - name: Verify Solana
+      run: solana --version
         
     - name: Install Anchor CLI
       run: |
