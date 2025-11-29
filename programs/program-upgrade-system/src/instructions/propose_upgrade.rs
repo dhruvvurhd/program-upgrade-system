@@ -52,7 +52,7 @@ pub fn handler(
     proposal.timelock_activated_at = None;
     proposal.timelock_period = TIMELOCK_PERIOD;
     proposal.executed_at = None;
-    proposal.bump = ctx.bumps.proposal;
+    proposal.bump = *ctx.bumps.get("proposal").unwrap();
     
     emit!(ProposalCreatedEvent {
         proposal_id: proposal.id,

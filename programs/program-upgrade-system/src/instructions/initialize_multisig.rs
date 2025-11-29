@@ -39,7 +39,7 @@ pub fn handler(
     multisig.authority = ctx.accounts.authority.key();
     multisig.members = members;
     multisig.threshold = threshold;
-    multisig.bump = ctx.bumps.multisig_config;
+    multisig.bump = *ctx.bumps.get("multisig_config").unwrap();
     
     Ok(())
 }
