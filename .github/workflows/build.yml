@@ -35,4 +35,6 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: program-build
-        path: artifacts/*.so
+        path: |
+          artifacts/*.so
+          target/idl/*.json
