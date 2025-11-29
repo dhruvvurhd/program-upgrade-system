@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ProgramUpgradeSystem } from "../target/types/program_upgrade_system";
+// import { ProgramUpgradeSystem } from "../target/types/program_upgrade_system";
 
 describe("program-upgrade-system", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
-  const program = anchor.workspace.programUpgradeSystem as Program<ProgramUpgradeSystem>;
+  const program = anchor.workspace.programUpgradeSystem;
 
   it("Is initialized!", async () => {
     // Add your test here.

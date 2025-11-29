@@ -20,12 +20,11 @@ jobs:
         tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
         echo "$PWD/solana-release/bin" >> $GITHUB_PATH
         
-    - name: Verify Solana
-      run: solana --version
-        
+    - name: Install Anchor CLI
+      run: cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
+
     - name: Build Program
-      working-directory: programs/program-upgrade-system
-      run: cargo build-sbf
+      run: anchor build
         
     - name: Copy artifacts
       run: |
