@@ -10,33 +10,34 @@ jobs:
     runs-on: ubuntu-22.04
     
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
       
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+    - uses: dtolnay/rust-toolchain@stable
       
     - name: Install Solana
       run: |
-        sh -c "$(curl -sSfL https://release.solana.com/v1.18.26/install)"
-        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
-      
-    - name: Verify Solana
-      run: solana --version
+        sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)"
+        export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+        solana --version
         
-    - name: Install Anchor CLI
+    - name: Install AVM
       run: |
-        cargo install --git https://github.com/coral-xyz/anchor avm --force
+        export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+        cargo install --git https://github.com/coral-xyz/anchor avm --locked --force
+        
+    - name: Install Anchor
+      run: |
+        export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"
         avm install 0.30.1
         avm use 0.30.1
+        anchor --version
         
-    - name: Build Program
+    - name: Build
       run: |
-        export PATH="$HOME/.avm/bin:$PATH"
+        export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$PATH"
         anchor build
         
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v4
       with:
         name: program-build
         path: |
