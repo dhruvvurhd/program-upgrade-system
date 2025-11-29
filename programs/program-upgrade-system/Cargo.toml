@@ -21,15 +21,7 @@ custom-panic = []
 
 
 [dependencies]
-anchor-lang = "0.29.0"
-toml_parser = "=1.0.0"
-
-# Force old versions compatible with Rust 1.75.0-dev
-borsh = "=0.10.3"
-indexmap = "=1.9.3"
-toml = "=0.7.8"
-toml_edit = "=0.19.15"
-toml_datetime = "=0.6.3"
+anchor-lang = "0.28.0"
 
 
 [lints.rust]
