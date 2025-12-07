@@ -23,6 +23,12 @@ jobs:
     - name: Install Anchor CLI
       run: cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
 
+    - name: Fix Anchor.toml for CI
+      run: |
+        # Remove the toolchain section that causes avm to trigger
+        sed -i '/\[toolchain\]/,/^$/d' Anchor.toml
+        cat Anchor.toml
+
     - name: Build Program
       run: anchor build
         
