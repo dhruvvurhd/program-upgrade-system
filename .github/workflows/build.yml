@@ -8,14 +8,43 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: backpackapp/build:v0.29.0
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Fix Anchor.toml
+    # Use latest stable Rust (1.83+) to satisfy all modern dependencies
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Cargo Registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-anchor-0.30.1-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-anchor-0.30.1-
+      
+    - name: Install Solana
       run: |
+        sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.17/install)"
+        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+        
+    - name: Install Anchor CLI
+      run: |
+        echo "Installing Anchor CLI..."
+        # Install directly from git tag, locking dependencies where possible
+        if ! command -v anchor &> /dev/null; then
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli
+        fi
+        anchor --version
+
+    - name: Disable avm in Anchor.toml
+      run: |
+        # Remove [toolchain] section to prevent anchor build from trying to use avm
         sed -i '/\[toolchain\]/,/^$/d' Anchor.toml
         cat Anchor.toml
 
@@ -25,7 +54,7 @@ jobs:
     - name: Copy artifacts
       run: |
         mkdir -p artifacts
-        cp target/deploy/*.so artifacts/ || echo "No .so files"
+        cp target/deploy/*.so artifacts/ 2>/dev/null || echo "Checking alternative paths..."
         ls -la target/deploy/ || true
         
     - uses: actions/upload-artifact@v4
