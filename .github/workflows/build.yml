@@ -8,24 +8,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    container:
+      image: backpackapp/build:v0.29.0
     
     steps:
     - uses: actions/checkout@v4
-      
-    - uses: dtolnay/rust-toolchain@1.75.0
-      
-    - name: Install Solana
+    
+    - name: Fix Anchor.toml
       run: |
-        wget https://github.com/solana-labs/solana/releases/download/v1.18.17/solana-release-x86_64-unknown-linux-gnu.tar.bz2
-        tar jxf solana-release-x86_64-unknown-linux-gnu.tar.bz2
-        echo "$PWD/solana-release/bin" >> $GITHUB_PATH
-        
-    - name: Install Anchor CLI
-      run: cargo install --git https://github.com/coral-xyz/anchor --tag v0.28.0 anchor-cli --locked
-
-    - name: Fix Anchor.toml for CI
-      run: |
-        # Remove the toolchain section that causes avm to trigger
         sed -i '/\[toolchain\]/,/^$/d' Anchor.toml
         cat Anchor.toml
 
@@ -35,7 +25,8 @@ jobs:
     - name: Copy artifacts
       run: |
         mkdir -p artifacts
-        cp target/deploy/*.so artifacts/ 2>/dev/null || cp programs/program-upgrade-system/target/deploy/*.so artifacts/
+        cp target/deploy/*.so artifacts/ || echo "No .so files"
+        ls -la target/deploy/ || true
         
     - uses: actions/upload-artifact@v4
       with:
