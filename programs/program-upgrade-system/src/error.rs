@@ -52,4 +52,13 @@ pub enum ErrorCode {
     
     #[msg("Timelock already activated")]
     TimelockAlreadyActivated,
+    
+    #[msg("System is already paused")]
+    SystemAlreadyPaused,
+    
+    #[msg("System is not paused")]
+    SystemNotPaused,
+    
+    #[msg("Not a multisig member")]
+    NotAMember,
 }

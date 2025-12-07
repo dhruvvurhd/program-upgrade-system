@@ -15,13 +15,13 @@ pub struct ProposeUpgrade<'info> {
         seeds = [SEED_PROPOSAL, new_program_buffer.as_ref()],
         bump
     )]
-    pub proposal: Account<'info, UpgradeProposal>,
+    pub proposal: Box<Account<'info, UpgradeProposal>>,
     
     #[account(
         seeds = [SEED_MULTISIG],
         bump = multisig_config.bump,
     )]
-    pub multisig_config: Account<'info, MultisigConfig>,
+    pub multisig_config: Box<Account<'info, MultisigConfig>>,
     
     #[account(mut)]
     pub proposer: Signer<'info>,
@@ -52,7 +52,7 @@ pub fn handler(
     proposal.timelock_activated_at = None;
     proposal.timelock_period = TIMELOCK_PERIOD;
     proposal.executed_at = None;
-    proposal.bump = *ctx.bumps.get("proposal").unwrap();
+    proposal.bump = ctx.bumps.proposal;
     
     emit!(ProposalCreatedEvent {
         proposal_id: proposal.id,

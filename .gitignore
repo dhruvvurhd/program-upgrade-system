@@ -1,15 +1,33 @@
+# Anchor/Solana
 .anchor
-.DS_Store
 target
-**/*.rs.bk
-node_modules
 test-ledger
+**/*.rs.bk
+
+# Node
+node_modules
 .yarn
+
+# OS
+.DS_Store
+
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+keypair*.json
+
+# Build artifacts
 validator-run
+
+# Temporary/Generated files
 *.txt
 patch_idl.js
 idl_minimal.json
 idl_temp_full.json
+
+# Old documentation (superseded by docs/)
 MENTOR_DEMO_GUIDE.md
 TEST_RESULTS.md
 ASSIGNMENT_VERIFICATION.md

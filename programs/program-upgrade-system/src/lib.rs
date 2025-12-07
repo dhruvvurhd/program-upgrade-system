@@ -12,7 +12,7 @@ pub use instructions::*;
 pub use state::*;
 pub use events::*;
 
-declare_id!("F4rYDGUKQHtJt14aPyGxtzacx9x7x9MH7rper2TuRdVz");
+declare_id!("EWkUZhSovRmxtyGYB7hgnb3LSfb9Z5XdrZtPJEeDiG1H");
 
 #[program]
 pub mod program_upgrade_system {
@@ -60,5 +60,13 @@ pub mod program_upgrade_system {
         old_account: Pubkey,
     ) -> Result<()> {
         instructions::migrate_account::handler(ctx, old_account)
+    }
+
+    pub fn pause_system(ctx: Context<PauseSystem>) -> Result<()> {
+        instructions::pause_system::handler(ctx)
+    }
+
+    pub fn resume_system(ctx: Context<ResumeSystem>) -> Result<()> {
+        instructions::resume_system::handler(ctx)
     }
 }

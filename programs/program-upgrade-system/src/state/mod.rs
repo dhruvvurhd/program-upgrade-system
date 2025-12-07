@@ -14,11 +14,12 @@ pub struct MultisigConfig {
     pub authority: Pubkey,
     pub members: Vec<Pubkey>,
     pub threshold: u8,
+    pub is_paused: bool,
     pub bump: u8,
 }
 
 impl MultisigConfig {
-    pub const LEN: usize = 8 + 32 + 4 + (32 * 10) + 1 + 1; // discriminator + authority + vec_len + members + threshold + bump
+    pub const LEN: usize = 8 + 32 + 4 + (32 * 10) + 1 + 1 + 1; // discriminator + authority + vec_len + members + threshold + is_paused + bump
 }
 
 #[account]

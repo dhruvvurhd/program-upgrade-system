@@ -1,88 +1,120 @@
 # Solana Program Upgrade System
 
-A secure, multisig-controlled upgrade system for Solana programs. This project demonstrates how to implement a secure governance mechanism for upgrading smart contracts using Cross-Program Invocations (CPI) to the BPF Loader Upgradeable.
+A secure, multisig-controlled upgrade and migration system for Solana programs with governance, timelock, and emergency controls.
 
 ## 🚀 Features
 
-- **Multisig Control**: Program upgrades require approval from a threshold of authorized members.
-- **Secure Upgrades**: Uses CPI to the BPF Loader Upgradeable program to execute upgrades safely.
-- **Timelock Mechanism**: Optional delay between approval and execution for added security.
-- **Full Test Coverage**: Integration tests covering the entire workflow (Initialize -> Propose -> Approve).
-
-## 🛠 Architecture
-
-The system consists of three main instructions:
-1.  **`InitializeMultisig`**: Sets up the governance config (members, threshold).
-2.  **`ProposeUpgrade`**: A member proposes a new program buffer (compiled code).
-3.  **`ApproveUpgrade`**: Members vote. Once the threshold is met, the upgrade is approved.
-4.  **`ExecuteUpgrade`**: The program executes the upgrade via CPI.
+| Feature | Description |
+|---------|-------------|
+| **Multisig Governance** | Threshold-based approval (e.g., 3 of 5 members) |
+| **48-Hour Timelock** | Delay between approval and execution |
+| **Emergency Controls** | Pause/Resume system operations |
+| **Account Migration** | Version tracking for data migrations |
+| **Audit Trail** | Database logging of all actions |
+| **REST API** | Backend service for off-chain integration |
 
 ## 📋 Prerequisites
 
-- **Rust**: 1.75.0 (Required for Solana 1.18 compatibility)
-- **Solana CLI**: 1.18.26
-- **Anchor CLI**: 0.28.0 (or compatible version)
+- **Rust**: 1.75+
+- **Solana CLI**: 1.18.x
+- **Anchor CLI**: 0.30.x
 - **Node.js**: 18+
+- **PostgreSQL**: 14+ (for backend)
 
-## 🏃‍♂️ Quick Start (Demo Guide)
+## 🏗 Architecture
 
-Follow these steps to run the project locally.
-
-### 1. Start the Local Validator
-**Note for macOS Users**: We use a specific command to avoid file system errors (`._genesis.bin`).
-
-```bash
-# Create a clean directory for the validator
-mkdir -p validator-run
-cd validator-run
-
-# Start validator with metadata file creation disabled
-export COPYFILE_DISABLE=1
-solana-test-validator --reset
 ```
-*Keep this terminal open.*
+┌─────────────────────────────────────────────────────────┐
+│                    Client Applications                   │
+└─────────────────────────────────────────────────────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              ▼                           ▼
+┌─────────────────────┐       ┌─────────────────────┐
+│   Anchor Program    │       │   Backend (Axum)    │
+│   8 Instructions    │       │   REST API          │
+└─────────────────────┘       └─────────────────────┘
+```
 
-### 2. Build the Program
-In a new terminal, navigate to the project root:
+### Smart Contract Instructions
 
+| Instruction | Purpose |
+|-------------|---------|
+| `initialize_multisig` | Setup governance |
+| `propose_upgrade` | Create proposal |
+| `approve_upgrade` | Vote on proposal |
+| `execute_upgrade` | Apply upgrade (after timelock) |
+| `cancel_upgrade` | Emergency cancellation |
+| `migrate_account` | Track account versions |
+| `pause_system` | Emergency pause |
+| `resume_system` | Resume operations |
+
+## 🏃‍♂️ Quick Start
+
+### 1. Start Local Validator
 ```bash
-# Build the program binary
+solana-test-validator -r --quiet
+```
+
+### 2. Build & Deploy
+```bash
 anchor build
+anchor deploy
 ```
 
-### 3. Deploy the Program
-We use the Solana CLI for precise control over the Program ID.
-
+### 3. Run Tests
 ```bash
-solana program deploy target/deploy/program_upgrade_system.so \
-  --program-id target/deploy/program_upgrade_system-keypair.json \
-  --url http://127.0.0.1:8899
+anchor test --skip-local-validator
 ```
 
-### 4. Run Tests
-Verify the system works as expected.
+Expected output:
+```
+  12 passing (8s)
+```
 
+## 📁 Project Structure
+
+```
+├── programs/program-upgrade-system/   # Anchor smart contract
+│   └── src/instructions/              # 8 instruction handlers
+├── backend/                           # Rust REST API server
+│   └── src/                           
+│       ├── api/                       # Route handlers
+│       ├── db/                        # PostgreSQL schema
+│       └── services/                  # Business logic
+├── tests/                             # TypeScript integration tests
+└── docs/                              # Documentation
+    ├── architecture.md
+    ├── api-reference.md
+    ├── governance.md
+    ├── migration-guide.md
+    └── testing-guide.md
+```
+
+## 📖 Documentation
+
+- [Architecture Overview](docs/architecture.md)
+- [API Reference](docs/api-reference.md)
+- [Governance Model](docs/governance.md)
+- [Migration Guide](docs/migration-guide.md)
+- [Testing Guide](docs/testing-guide.md)
+
+## 🧪 Test Coverage
+
+| Category | Tests |
+|----------|-------|
+| Core Workflow | 6 tests |
+| Edge Cases | 3 tests |
+| Pause/Resume | 3 tests |
+| **Total** | **12 tests** |
+
+## 🔧 Configuration
+
+Copy `.env.example` to `.env` in the backend directory:
 ```bash
-env ANCHOR_PROVIDER_URL=http://127.0.0.1:8899 \
-    ANCHOR_WALLET=$HOME/.config/solana/id.json \
-    npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts
+cp backend/.env.example backend/.env
 ```
-
-## ✅ Verification Results
-
-The latest test run confirmed:
-- [x] Multisig Initialization
-- [x] Upgrade Proposal Creation
-- [x] Approval Workflow
-- [x] PDA Derivation & Security Checks
-
-## 🔧 Troubleshooting
-
-**Validator fails to start?**
-Ensure you are running it from the `validator-run` directory with `COPYFILE_DISABLE=1`.
-
-**Program ID Mismatch?**
-If you see a mismatch error, ensure you redeploy using the command in Step 3.
 
 ## 📜 License
+
 MIT

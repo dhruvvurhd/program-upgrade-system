@@ -12,13 +12,13 @@ pub struct CancelUpgrade<'info> {
         constraint = proposal.status != UpgradeStatus::Executed @ ErrorCode::CannotCancelAfterExecution,
         constraint = proposal.status != UpgradeStatus::Cancelled @ ErrorCode::ProposalAlreadyCancelled,
     )]
-    pub proposal: Account<'info, UpgradeProposal>,
+    pub proposal: Box<Account<'info, UpgradeProposal>>,
     
     #[account(
         seeds = [SEED_MULTISIG],
         bump = multisig_config.bump,
     )]
-    pub multisig_config: Account<'info, MultisigConfig>,
+    pub multisig_config: Box<Account<'info, MultisigConfig>>,
     
     #[account(mut)]
     pub canceller: Signer<'info>,

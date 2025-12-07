@@ -4,6 +4,8 @@ pub mod approve_upgrade;
 pub mod execute_upgrade;
 pub mod cancel_upgrade;
 pub mod migrate_account;
+pub mod pause_system;
+pub mod resume_system;
 
 pub use initialize_multisig::*;
 pub use propose_upgrade::*;
@@ -11,3 +13,5 @@ pub use approve_upgrade::*;
 pub use execute_upgrade::*;
 pub use cancel_upgrade::*;
 pub use migrate_account::*;
+pub use pause_system::*;
+pub use resume_system::*;

@@ -12,15 +12,11 @@ name = "program_upgrade_system"
 default = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
-no-idl = []
-no-log-ix-name = []
-anchor-debug = []
-custom-heap = []
-custom-panic = []
-
+idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
-anchor-lang = "0.28.0"
+anchor-lang = "0.32.1"
+
 
 
 [lints.rust]

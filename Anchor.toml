@@ -1,4 +1,5 @@
 [toolchain]
+anchor_version = "0.32.1"
 package_manager = "yarn"
 
 [features]
@@ -6,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-program_upgrade_system = "F4rYDGUKQHtJt14aPyGxtzacx9x7x9MH7rper2TuRdVz"
+program_upgrade_system = "EWkUZhSovRmxtyGYB7hgnb3LSfb9Z5XdrZtPJEeDiG1H"
 
 [registry]
 url = "https://api.apr.dev"

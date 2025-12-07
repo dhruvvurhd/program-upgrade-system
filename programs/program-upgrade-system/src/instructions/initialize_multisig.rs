@@ -12,7 +12,7 @@ pub struct InitializeMultisig<'info> {
         seeds = [SEED_MULTISIG],
         bump
     )]
-    pub multisig_config: Account<'info, MultisigConfig>,
+    pub multisig_config: Box<Account<'info, MultisigConfig>>,
     
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -39,7 +39,8 @@ pub fn handler(
     multisig.authority = ctx.accounts.authority.key();
     multisig.members = members;
     multisig.threshold = threshold;
-    multisig.bump = *ctx.bumps.get("multisig_config").unwrap();
+    multisig.is_paused = false;
+    multisig.bump = ctx.bumps.multisig_config;
     
     Ok(())
 }

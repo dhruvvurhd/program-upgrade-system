@@ -13,13 +13,13 @@ pub struct ApproveUpgrade<'info> {
             || proposal.status == UpgradeStatus::Approved 
             @ ErrorCode::InvalidProposalState,
     )]
-    pub proposal: Account<'info, UpgradeProposal>,
+    pub proposal: Box<Account<'info, UpgradeProposal>>,
     
     #[account(
         seeds = [SEED_MULTISIG],
         bump = multisig_config.bump,
     )]
-    pub multisig_config: Account<'info, MultisigConfig>,
+    pub multisig_config: Box<Account<'info, MultisigConfig>>,
     
     pub approver: Signer<'info>,
 }
