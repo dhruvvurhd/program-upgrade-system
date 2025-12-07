@@ -8,13 +8,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    # IMPORTANT: Do NOT use a container image, it traps us with old Rust versions.
     
     steps:
     - uses: actions/checkout@v4
     
-    # Use latest stable Rust (1.83+) to satisfy all modern dependencies
-    - name: Install Rust
+    - name: Install Rust Stable
       uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+        
+    - name: Verify Rust Version
+      run: |
+        rustc --version
+        cargo --version
+        # Should be 1.80+
 
     - name: Cache Cargo Registry
       uses: actions/cache@v4
@@ -36,20 +44,26 @@ jobs:
     - name: Install Anchor CLI
       run: |
         echo "Installing Anchor CLI..."
-        # Install directly from git tag, locking dependencies where possible
+        # Install directly from git tag
+        # We use --locked to ensure we use valid dependencies from the tag, though with stable Rust we should be safe.
         if ! command -v anchor &> /dev/null; then
-          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli
+          cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli --locked
         fi
+        
+        # Add cargo bin to path for this step to ensure we find it
+        export PATH="$HOME/.cargo/bin:$PATH"
         anchor --version
 
     - name: Disable avm in Anchor.toml
       run: |
-        # Remove [toolchain] section to prevent anchor build from trying to use avm
+        # Remove [toolchain] section to prevent anchor build from trying to trigger avm
         sed -i '/\[toolchain\]/,/^$/d' Anchor.toml
         cat Anchor.toml
 
     - name: Build Program
-      run: anchor build
+      run: |
+        export PATH="$HOME/.cargo/bin:$PATH"
+        anchor build
         
     - name: Copy artifacts
       run: |
