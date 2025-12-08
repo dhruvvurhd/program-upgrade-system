@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Program Upgrade System - Governance Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent-purple: #8b5cf6;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #eab308;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #2a2a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1200px) {
+            .info-panel {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .info-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+        }
+
+        .info-box.success {
+            border-color: var(--accent-green);
+        }
+
+        .info-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-family: 'SF Mono', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .info-value.highlight {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--accent-green);
+        }
+
+        .status-badge.paused {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+        }
+
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Council Panel */
+        .council-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .council-members {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .member {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .member:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .member.voted {
+            border-color: var(--accent-green);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .member-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .member-addr {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .member-status {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .member-status.pending {
+            color: var(--text-secondary);
+        }
+
+        .member-status.approved {
+            color: var(--accent-green);
+        }
+
+        .vote-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--accent-purple);
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .vote-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .vote-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .vote-btn.voted {
+            background: var(--accent-green);
+        }
+
+        /* Proposal Panel */
+        .proposal-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+        }
+
+        .proposal-header {
+            margin-bottom: 1rem;
+        }
+
+        .proposal-id {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .proposal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .proposal-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            margin: 1.25rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: var(--bg-secondary);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-purple), var(--accent-green));
+            transition: width 0.5s ease;
+            border-radius: 6px;
+        }
+
+        /* Timelock */
+        .timelock-section {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .timelock-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .timelock-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--accent-yellow);
+        }
+
+        .timelock-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-execute {
+            background: linear-gradient(135deg, var(--accent-green), #16a34a);
+            color: white;
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, var(--accent-red), #dc2626);
+            color: white;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, var(--accent-yellow), #ca8a04);
+            color: black;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Log */
+        .log-panel {
+            margin-top: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+
+        .log-header {
+            padding: 0.75rem 1rem;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .log-content {
+            padding: 0.75rem 1rem;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .log-entry {
+            padding: 0.35rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .log-time {
+            color: var(--text-secondary);
+            min-width: 60px;
+        }
+
+        .log-success {
+            color: var(--accent-green);
+        }
+
+        .log-error {
+            color: var(--accent-red);
+        }
+
+        .log-info {
+            color: var(--accent-blue);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🔧 Program Upgrade Governance</h1>
+            <p class="subtitle">Multisig Council Dashboard — 3 of 5 Approval Required</p>
+        </header>
+
+        <div class="info-panel">
+            <div class="info-box">
+                <div class="info-label">Program ID</div>
+                <div class="info-value">EWkUZh...G1H</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Multisig PDA</div>
+                <div class="info-value">Fy1my1...H8QF</div>
+            </div>
+            <div class="info-box success">
+                <div class="info-label">Threshold</div>
+                <div class="info-value highlight">3 / 5 Votes</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Active Proposals</div>
+                <div class="info-value">1</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">System Status</div>
+                <div class="info-value"><span class="status-badge active" id="systemStatus">🟢 Active</span></div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Council Members -->
+            <div class="council-panel">
+                <div class="panel-title">👥 Governance Council</div>
+                <div class="council-members" id="councilMembers">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Active Proposal -->
+            <div class="proposal-panel">
+                <div class="proposal-header">
+                    <div class="proposal-id">Proposal #001</div>
+                    <div class="proposal-title">Upgrade to v2.0</div>
+                    <div class="proposal-desc">Security patch + performance improvements. New buffer: 4wJ6y...WRe</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-label">
+                        <span>Voting Progress</span>
+                        <span id="voteCount">0 / 3 Required</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="timelock-section">
+                    <div class="timelock-label">⏱️ Timelock Countdown</div>
+                    <div class="timelock-value" id="timelockValue">48:00:00</div>
+                    <div class="timelock-desc">Upgrade can execute after timelock expires</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-execute" id="btnExecute" disabled onclick="executeUpgrade()">
+                        🚀 Execute Upgrade
+                    </button>
+                    <button class="btn btn-cancel" onclick="cancelProposal()">
+                        ❌ Cancel Proposal
+                    </button>
+                    <button class="btn btn-pause" id="btnPause" onclick="togglePause()">
+                        🛑 Emergency Pause
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-panel">
+            <div class="log-header">📋 Activity Log</div>
+            <div class="log-content" id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated council members (real addresses would come from chain)
+        const councilMembers = [
+            { id: 1, name: 'Alice Chen', role: 'Lead Developer', addr: '9xQe...m4Fd', avatar: '👩‍💻', voted: false },
+            { id: 2, name: 'Bob Wilson', role: 'Security Lead', addr: '3kPw...nR2s', avatar: '🧑‍🔬', voted: false },
+            { id: 3, name: 'Carol Davis', role: 'CTO', addr: '7hYt...kL9p', avatar: '👩‍💼', voted: false },
+            { id: 4, name: 'David Kim', role: 'Auditor', addr: '2mNc...wQ5j', avatar: '🧑‍⚖️', voted: false },
+            { id: 5, name: 'Eve Martinez', role: 'Operations', addr: '8vBx...fT3r', avatar: '👩‍🚀', voted: false },
+        ];
+
+        let voteCount = 0;
+        const threshold = 3;
+        let isPaused = false;
+        let timelockSeconds = 48 * 60 * 60; // 48 hours
+
+        function init() {
+            renderCouncil();
+            log('info', 'Dashboard initialized. Connected to localnet.');
+            log('info', 'Proposal #001 created. Awaiting council votes.');
+            startTimelock();
+        }
+
+        function renderCouncil() {
+            const container = document.getElementById('councilMembers');
+            container.innerHTML = councilMembers.map(m => `
+                <div class="member ${m.voted ? 'voted' : ''}" id="member-${m.id}">
+                    <div class="member-avatar">${m.avatar}</div>
+                    <div class="member-info">
+                        <div class="member-name">${m.name}</div>
+                        <div class="member-role">${m.role}</div>
+                        <div class="member-addr">${m.addr}</div>
+                    </div>
+                    <span class="member-status ${m.voted ? 'approved' : 'pending'}">${m.voted ? '✅ Voted' : '⏳ Pending'}</span>
+                    <button class="vote-btn ${m.voted ? 'voted' : ''}" ${m.voted ? 'disabled' : ''} onclick="castVote(${m.id})">
+                        ${m.voted ? 'Voted' : 'Vote'}
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function castVote(memberId) {
+            const member = councilMembers.find(m => m.id === memberId);
+            if (!member || member.voted) return;
+
+            member.voted = true;
+            voteCount++;
+
+            log('success', `✅ ${member.name} approved the proposal (${voteCount}/${threshold})`);
+
+            renderCouncil();
+            updateProgress();
+
+            if (voteCount >= threshold) {
+                log('success', '🎉 Threshold reached! Upgrade can execute after timelock.');
+                document.getElementById('btnExecute').disabled = false;
+            }
+        }
+
+        function updateProgress() {
+            const percent = (voteCount / threshold) * 100;
+            document.getElementById('progressFill').style.width = `${Math.min(percent, 100)}%`;
+            document.getElementById('voteCount').textContent = `${voteCount} / ${threshold} Required`;
+        }
+
+        function executeUpgrade() {
+            if (voteCount < threshold) {
+                log('error', '❌ Cannot execute: Not enough votes');
+                return;
+            }
+            log('success', '🚀 Executing upgrade via BPF Loader CPI...');
+            setTimeout(() => {
+                log('success', '✅ Upgrade executed successfully! Program updated to v2.0');
+            }, 1500);
+        }
+
+        function cancelProposal() {
+            log('info', '❌ Proposal cancelled by council member.');
+            voteCount = 0;
+            councilMembers.forEach(m => m.voted = false);
+            renderCouncil();
+            updateProgress();
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('btnPause');
+            const status = document.getElementById('systemStatus');
+
+            if (isPaused) {
+                btn.textContent = '🟢 Resume System';
+                btn.classList.remove('btn-pause');
+                btn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                status.className = 'status-badge paused';
+                status.textContent = '🔴 PAUSED';
+                log('error', '🛑 EMERGENCY PAUSE ACTIVATED - All operations frozen');
+            } else {
+                btn.textContent = '🛑 Emergency Pause';
+                btn.style.background = 'linear-gradient(135deg, #eab308, #ca8a04)';
+                status.className = 'status-badge active';
+                status.textContent = '🟢 Active';
+                log('success', '🟢 System resumed - Operations active');
+            }
+        }
+
+        function startTimelock() {
+            setInterval(() => {
+                if (timelockSeconds > 0) timelockSeconds--;
+                const h = Math.floor(timelockSeconds / 3600);
+                const m = Math.floor((timelockSeconds % 3600) / 60);
+                const s = timelockSeconds % 60;
+                document.getElementById('timelockValue').textContent =
+                    `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function log(type, message) {
+            const el = document.getElementById('logContent');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            el.innerHTML += `<div class="log-entry"><span class="log-time">${time}</span><span class="log-${type}">${message}</span></div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

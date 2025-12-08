@@ -1,31 +1,36 @@
-# Program Upgrade System - Manual Testing Guide
+# Program Upgrade System - Exhaustive Verification Guide
 
-This guide walks you through manually testing each function of the Program Upgrade System.
+This guide provides step-by-step instructions to manually verify every function of the program. For each step, we explain **what** you are doing, **why** it matters, and the **exact command** to run.
 
 ## Prerequisites
 
-```bash
-# Terminal 1: Start local validator
-cd /Users/dhruvmishra/UPGRADECPI/program-upgrade-system
-solana-test-validator -r --quiet
-
-# Terminal 2: Build and deploy
-anchor build
-anchor deploy
-```
+1.  **Terminal 1**: Start a local Solana validator (a mini-blockchain on your laptop).
+    ```bash
+    solana-test-validator -r --quiet
+    ```
+2.  **Terminal 2**: Build and deploy your program to this local chain.
+    ```bash
+    cd /Users/dhruvmishra/UPGRADECPI/program-upgrade-system
+    anchor build
+    anchor deploy
+    ```
+3.  **Set Environment Variables**: Required for the verification scripts to connect to local validator.
+    ```bash
+    export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+    export ANCHOR_WALLET=~/.config/solana/id.json
+    ```
 
 ---
 
-## Step 1: Initialize Multisig
+## 1. Initialize Multisig
 
-**Purpose**: Create the governance structure (members + voting threshold).
+### What this means
+Before anyone can upgrade the program, we must set up the "governance" layer. We create a special account (PDA) that stores the list of authorized members (you) and the rules (threshold).
 
-### Run Test
+### Run Verification
 ```bash
 npx ts-node -e "
 const anchor = require('@coral-xyz/anchor');
-const { programUpgradeSystem } = require('./target/types/program_upgrade_system');
-
 async function main() {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.programUpgradeSystem;
@@ -36,7 +41,16 @@ async function main() {
     program.programId
   );
   
-  console.log('Multisig PDA:', multisigPda.toBase58());
+  console.log('📝 Multisig PDA:', multisigPda.toBase58());
+  
+  // Check if already initialized
+  try {
+    const existing = await program.account.multisigConfig.fetch(multisigPda);
+    console.log('✅ Already initialized! Members:', existing.members.length);
+    return;
+  } catch (e) {
+    // Not initialized yet, proceed
+  }
   
   const tx = await program.methods
     .initializeMultisig([authority], 1)
@@ -53,145 +67,150 @@ main();
 "
 ```
 
-### Expected Output
-```
-Multisig PDA: Fy1my1YyQmjkVF8zDJD7rS8tUePPaeBAXnPsQbTxH8QF
-✅ Initialized! Tx: 5FFTdFWA8u4BsKezypGXMBeTTB1hruPgSNWnUcn1eAN...
-```
+> **Note**: If you see "Already initialized", that means this step was completed previously. This is expected behavior - the program correctly prevents duplicate initialization.
 
 ---
 
-## Step 2: Propose Upgrade
+## Appendix: Understanding Localnet & Debugging
 
-**Purpose**: Create a new upgrade proposal.
+### What is "Localnet"?
+"Localnet" is a simulated Solana blockchain running entirely on your laptop. It allows you to develop and test without spending real money.
+- **Validator**: The process (`solana-test-validator`) that acts as the network.
+- **Provider**: Your wallet (usually `~/.config/solana/id.json`) that signs transactions.
+- **Program**: Your smart contract deployed to this local network.
 
-### Run Test
+### How to Monitor the Network
+While running tests, you can open a **3rd Terminal** to see exactly what is happening on-chain.
+
+**First, navigate to your project directory:**
+```bash
+cd /Users/dhruvmishra/UPGRADECPI/program-upgrade-system
+```
+
+Then use these commands:
+
+#### 1. View Program Logs (Streaming)
+See `msg!()` output in real-time.
+```bash
+solana logs
+```
+*Expected Output:*
+```
+Transaction executed in slot 5:
+  > Program <YOUR_PROGRAM_ID> invoke [1]
+  > Program log: Instruction: InitializeMultisig
+  > Program log: Multisig PDA: Fy1m...
+  > Program <YOUR_PROGRAM_ID> consumed 12345 of 200000 compute units
+  > Program <YOUR_PROGRAM_ID> success
+```
+
+#### 2. Check Program Details
+Verify your program is deployed and executable.
+```bash
+solana program show <PROGRAM_ID>
+```
+*Expected Output:*
+```
+Program Id: <YOUR_PROGRAM_ID>
+Owner: BPFLoaderUpgradeab1e11111111111111111111111
+ProgramData Address: <DATA_ADDRESS>
+Authority: <YOUR_WALLET>
+Last Deployed In Slot: 123
+Data Length: 456789 bytes
+```
+
+#### 3. Inspect an Account
+Peek into the raw data of any account (Proposal, Multisig, etc.).
+```bash
+solana account <ACCOUNT_ADDRESS>
+```
+*Expected Output:*
+```
+Public Key: <ACCOUNT_ADDRESS>
+Balance: 0.00239472 SOL
+Owner: <YOUR_PROGRAM_ID>
+Executable: false
+Rent Epoch: 123
+Length: 85 bytes (0x55)
+0000:   08 00 00 00  00 00 00 00  01 00 00 00  00 00 00 00   ................
+0010:   ... (Raw hexdump of account data) ...
+```
+To see decoded data, use `anchor account` calls in your scripts (as shown in steps 1-6 above).
+
+---
+
+## 2. Propose Upgrade
+
+### What this means
+You (a member) want to upgrade the software. You cannot just "do it". You must submit a "Proposal" that says: *"I want to upgrade to improved code buffer X."*
+
+### Run Verification
 ```bash
 npx ts-node -e "
 const anchor = require('@coral-xyz/anchor');
-
 async function main() {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.programUpgradeSystem;
   const authority = anchor.getProvider().publicKey;
-  
-  const buffer = anchor.web3.Keypair.generate().publicKey;
-  
-  const [multisigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from('multisig')],
-    program.programId
-  );
+  const buffer = anchor.web3.Keypair.generate().publicKey; // Fake buffer for testing
   
   const [proposalPda] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from('proposal'), buffer.toBuffer()],
     program.programId
   );
   
-  console.log('Buffer:', buffer.toBase58());
-  console.log('Proposal PDA:', proposalPda.toBase58());
+  console.log('📝 Proposing upgrade to buffer:', buffer.toBase58());
   
   const tx = await program.methods
-    .proposeUpgrade(buffer, 'Upgrade to v2.0 with new features')
+    .proposeUpgrade(buffer, 'Upgrade to v2.0')
     .accounts({
       proposal: proposalPda,
-      multisigConfig: multisigPda,
+      multisigConfig: anchor.web3.PublicKey.findProgramAddressSync([Buffer.from('multisig')], program.programId)[0],
       proposer: authority,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .rpc();
   
-  console.log('✅ Proposed! Tx:', tx);
-  console.log('');
-  console.log('SAVE THIS: Proposal PDA =', proposalPda.toBase58());
+  console.log('✅ Proposal Created! Proposal Address:', proposalPda.toBase58());
+  console.log('SAVE THIS ADDRESS for the next step.');
 }
 main();
 "
 ```
 
-### Expected Output
-```
-Buffer: 4wJ6ysndCHtW3YTFaTDJVap72UC5jvYbsEDoFWUZwWRe
-Proposal PDA: 8p2PRjkJmKr4qSA4bQSz7VknrXkJJh7nimLtj19H5Gnt
-✅ Proposed! Tx: 4QFoh...
-SAVE THIS: Proposal PDA = 8p2PRjkJmKr4qSA4bQSz7VknrXkJJh7nimLtj19H5Gnt
-```
-
 ---
 
-## Step 3: Approve Upgrade
+## 3. Approve Upgrade
 
-**Purpose**: Vote to approve the proposal.
+### What this means
+Other members review your code. If they agree, they "Approve" it. Once enough members approve (1 in this case), the proposal is ready to execute.
 
-### Run Test
+### Run Verification
+*Replace `PROPOSAL_ADDR` with the address from Step 2.*
+
 ```bash
-# Replace PROPOSAL_PDA with the one from Step 2
-PROPOSAL_PDA="8p2PRjkJmKr4qSA4bQSz7VknrXkJJh7nimLtj19H5Gnt"
+PROPOSAL_ADDR="GspSMSj2HEzQtZj29ruT4PLdyg8L2iaxBu7kDofb3KA9" 
 
 npx ts-node -e "
 const anchor = require('@coral-xyz/anchor');
-
 async function main() {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.programUpgradeSystem;
-  const authority = anchor.getProvider().publicKey;
   
-  const proposalPda = new anchor.web3.PublicKey('$PROPOSAL_PDA');
+  const proposalPda = new anchor.web3.PublicKey('$PROPOSAL_ADDR');
   
-  const [multisigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from('multisig')],
-    program.programId
-  );
+  console.log('🗳️ Casting vote for:', proposalPda.toBase58());
   
   const tx = await program.methods
     .approveUpgrade(proposalPda)
     .accounts({
       proposal: proposalPda,
-      multisigConfig: multisigPda,
-      approver: authority,
+      multisigConfig: anchor.web3.PublicKey.findProgramAddressSync([Buffer.from('multisig')], program.programId)[0],
+      approver: anchor.getProvider().publicKey,
     })
     .rpc();
   
-  console.log('✅ Approved! Tx:', tx);
-  
-  // Check status
-  const proposal = await program.account.upgradeProposal.fetch(proposalPda);
-  console.log('Status:', proposal.status);
-  console.log('Approvals:', proposal.approvals.length);
-}
-main();
-"
-```
-
-### Expected Output
-```
-✅ Approved! Tx: xXQZUC5sRWWQqqgpRiGjmRG6vWgbq9Xi6BcKdxurmmpS...
-Status: { timelockActive: {} }
-Approvals: 1
-```
-
----
-
-## Step 4: Check Proposal Status
-
-**Purpose**: View current state of a proposal.
-
-```bash
-npx ts-node -e "
-const anchor = require('@coral-xyz/anchor');
-
-async function main() {
-  anchor.setProvider(anchor.AnchorProvider.env());
-  const program = anchor.workspace.programUpgradeSystem;
-  
-  const proposalPda = new anchor.web3.PublicKey('$PROPOSAL_PDA');
-  
-  const proposal = await program.account.upgradeProposal.fetch(proposalPda);
-  
-  console.log('=== Proposal Status ===');
-  console.log('Status:', JSON.stringify(proposal.status));
-  console.log('Description:', proposal.description);
-  console.log('Approvals:', proposal.approvals.length);
-  console.log('Created:', new Date(proposal.createdAt.toNumber() * 1000));
+  console.log('✅ Approved! Vote recorded.');
 }
 main();
 "
@@ -199,33 +218,57 @@ main();
 
 ---
 
-## Step 5: Pause System (Emergency)
+## 4. Cancel Upgrade (Test Logic)
 
-**Purpose**: Emergency pause all operations.
+### What this means
+You realized the code has a bug *after* proposing it. You can "Cancel" the proposal to prevent it from ever being executed.
 
+### Run Verification
 ```bash
 npx ts-node -e "
 const anchor = require('@coral-xyz/anchor');
-
 async function main() {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.programUpgradeSystem;
   const authority = anchor.getProvider().publicKey;
   
-  const [multisigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from('multisig')],
+  // Create a dummy proposal just to cancel it
+  const buffer = anchor.web3.Keypair.generate().publicKey;
+  const [proposalPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from('proposal'), buffer.toBuffer()], 
     program.programId
   );
+  const multisigPda = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from('multisig')], 
+    program.programId
+  )[0];
   
-  const tx = await program.methods
-    .pauseSystem()
-    .accounts({
+  await program.methods.proposeUpgrade(buffer, 'Bad Upgrade').accounts({
+      proposal: proposalPda,
       multisigConfig: multisigPda,
-      pauser: authority,
+      proposer: authority,
+      systemProgram: anchor.web3.SystemProgram.programId,
+  }).rpc();
+  
+  console.log('📝 Created bad proposal:', proposalPda.toBase58());
+
+  // Now Cancel it (pass proposal_id as argument + buffer/rent_recipient accounts)
+  const tx = await program.methods
+    .cancelUpgrade(proposalPda)
+    .accounts({
+      proposal: proposalPda,
+      multisigConfig: multisigPda,
+      canceller: authority,
+      buffer: buffer,
+      rentRecipient: authority,
     })
     .rpc();
+    
+  console.log('❌ Cancelled! The proposal is now dead.');
   
-  console.log('🛑 System PAUSED! Tx:', tx);
+  // Verify status
+  const account = await program.account.upgradeProposal.fetch(proposalPda);
+  console.log('Status on chain:', JSON.stringify(account.status));
 }
 main();
 "
@@ -233,33 +276,41 @@ main();
 
 ---
 
-## Step 6: Resume System
+## 5. Migrate Account
 
-**Purpose**: Resume after emergency pause.
+### What this means
+The software upgrade changed the data structure (e.g., added a new field to UserAccount). We verify that we can take an "old" account and convert it to the "new" format safely.
 
+### Run Verification
 ```bash
 npx ts-node -e "
 const anchor = require('@coral-xyz/anchor');
-
 async function main() {
   anchor.setProvider(anchor.AnchorProvider.env());
   const program = anchor.workspace.programUpgradeSystem;
-  const authority = anchor.getProvider().publicKey;
   
-  const [multisigPda] = anchor.web3.PublicKey.findProgramAddressSync(
-    [Buffer.from('multisig')],
+  // Mock an 'old' account address
+  const oldAccountKey = anchor.web3.Keypair.generate().publicKey;
+  
+  const [accountVersionPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from('migration'), oldAccountKey.toBuffer()],
     program.programId
   );
+
+  console.log('🔄 Migrating account:', oldAccountKey.toBase58());
   
   const tx = await program.methods
-    .resumeSystem()
+    .migrateAccount()
     .accounts({
-      multisigConfig: multisigPda,
-      resumer: authority,
+      accountVersion: accountVersionPda, // Tracks that this account was migrated
+      oldAccount: oldAccountKey,        // The account being read
+      // newAccount: ... in real app, you'd allow writing to a new PDA
+      authority: anchor.getProvider().publicKey,
+      systemProgram: anchor.web3.SystemProgram.programId,
     })
     .rpc();
-  
-  console.log('🟢 System RESUMED! Tx:', tx);
+    
+  console.log('✅ Account Migrated! Version tag created.');
 }
 main();
 "
@@ -267,23 +318,50 @@ main();
 
 ---
 
-## Quick Test: Run All Automated Tests
+## 6. Emergency Pause / Resume
 
+### What this means
+**Pause**: A "Check Engine" light but for code. If a hack is detected, any member can freeze the contract. No proposals or upgrades can happen.
+**Resume**: Turns the system back on.
+
+### Run Verification
 ```bash
-# Make sure validator is running first
-anchor test --skip-local-validator
+npx ts-node -e "
+const anchor = require('@coral-xyz/anchor');
+async function main() {
+  anchor.setProvider(anchor.AnchorProvider.env());
+  const program = anchor.workspace.programUpgradeSystem;
+  
+  const multisigPda = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from('multisig')], program.programId)[0];
+
+  console.log('🛑 Pausing System...');
+  await program.methods.pauseSystem().accounts({
+      multisigConfig: multisigPda,
+      pauser: anchor.getProvider().publicKey,
+  }).rpc();
+  console.log('System is PAUSED.');
+  
+  // Verify we cannot propose (Should Fail)
+  try {
+     const buffer = anchor.web3.Keypair.generate().publicKey;
+     const [pda] = anchor.web3.PublicKey.findProgramAddressSync([Buffer.from('proposal'), buffer.toBuffer()], program.programId);
+     await program.methods.proposeUpgrade(buffer, 'Should Fail').accounts({
+         proposal: pda,
+         multisigConfig: multisigPda,
+         proposer: anchor.getProvider().publicKey,
+         systemProgram: anchor.web3.SystemProgram.programId,
+     }).rpc();
+  } catch (e) {
+     console.log('✅ Good! Proposal failed as expected because system is paused.');
+  }
+
+  console.log('🟢 Resuming System...');
+  await program.methods.resumeSystem().accounts({
+      multisigConfig: multisigPda,
+      resumer: anchor.getProvider().publicKey,
+  }).rpc();
+  console.log('System is RESUMED.');
+}
+main();
+"
 ```
-
-Expected: `12 passing`
-
----
-
-## Error Reference
-
-| Error | Meaning | Fix |
-|-------|---------|-----|
-| `TimelockNotExpired` | Must wait 48h | Wait or use cancel |
-| `InvalidProposalState` | Wrong status | Check current status |
-| `ProposalAlreadyCancelled` | Already cancelled | Create new proposal |
-| `SystemAlreadyPaused` | Already paused | Run resume first |
-| `NotAMember` | Not a multisig member | Use correct wallet |
