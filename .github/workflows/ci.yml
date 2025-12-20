@@ -26,6 +26,8 @@ jobs:
 
       - name: Install Rust Nightly
         uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly-2024-11-01
 
       - name: Cache Cargo Registry
         uses: actions/cache@v4
@@ -47,7 +49,7 @@ jobs:
 
       - name: Install Anchor CLI
         run: |
-          export RUSTUP_TOOLCHAIN=nightly
+          export RUSTUP_TOOLCHAIN=nightly-2024-11-01
           cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli || true
           anchor --version
 
