@@ -53,6 +53,24 @@ jobs:
           npm install -g yarn
           yarn install
 
+      - name: Create Solana keypair
+        run: |
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          mkdir -p ~/.config/solana
+          solana-keygen new --outfile ~/.config/solana/id.json --no-bip39-passphrase --force
+          # Generate program keypair
+          mkdir -p target/deploy
+          solana-keygen new --outfile target/deploy/program_upgrade_system-keypair.json --no-bip39-passphrase --force
+
+      - name: Sync program ID
+        run: |
+          export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          yes | avm use 0.32.1 || true
+          # Sync the program ID from keypair to lib.rs and Anchor.toml
+          anchor keys sync
+          echo "Program ID synced:"
+          anchor keys list
+
       - name: Build Program
         env:
           CARGO_NET_GIT_FETCH_WITH_CLI: true
@@ -75,12 +93,6 @@ jobs:
           BUILD_TIME=$((BUILD_END - BUILD_START))
           echo "⏱️ Build completed in ${BUILD_TIME} seconds"
           echo "BUILD_TIME=${BUILD_TIME}" >> $GITHUB_ENV
-
-      - name: Create Solana keypair
-        run: |
-          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          mkdir -p ~/.config/solana
-          solana-keygen new --outfile ~/.config/solana/id.json --no-bip39-passphrase --force
 
       - name: Start Solana Test Validator
         run: |
@@ -137,7 +149,8 @@ jobs:
           yes | avm use 0.32.1 || true
           export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
           export ANCHOR_WALLET=~/.config/solana/id.json
-          anchor deploy
+          # Deploy without IDL to avoid IDL account creation errors
+          anchor deploy --no-idl
 
       - name: Run Tests
         run: |
