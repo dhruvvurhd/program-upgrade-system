@@ -44,10 +44,13 @@ jobs:
           sed -i '/\[toolchain\]/,/^$/d' Anchor.toml || true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: "yarn"
+        run: |
+          # Use Node.js from the golden image
+          node --version || echo "Node.js not found in PATH"
+          npm --version || echo "npm not found in PATH"
+          # Install yarn if not available
+          which yarn || npm install -g yarn
+          yarn --version
 
       - name: Install Node dependencies
         run: yarn install
