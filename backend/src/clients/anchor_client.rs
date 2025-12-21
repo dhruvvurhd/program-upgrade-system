@@ -266,8 +266,8 @@ impl anchor_client::anchor_lang::InstructionData for ExecuteUpgradeArgs {
         // Anchor discriminator for "execute_upgrade" + serialized proposal_id
         let mut data = Vec::new();
         // Discriminator: sha256("global:execute_upgrade")[..8]
-        // Pre-computed: [0x5e, 0x8c, 0x4c, 0x37, 0x68, 0x6b, 0x90, 0x5c]
-        data.extend_from_slice(&[0x5e, 0x8c, 0x4c, 0x37, 0x68, 0x6b, 0x90, 0x5c]);
+        // Verified: [0xcd, 0xdb, 0x64, 0xda, 0x42, 0x27, 0xd7, 0x18]
+        data.extend_from_slice(&[0xcd, 0xdb, 0x64, 0xda, 0x42, 0x27, 0xd7, 0x18]);
         data.extend_from_slice(self.proposal_id.as_ref());
         data
     }
