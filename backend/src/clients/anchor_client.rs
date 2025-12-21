@@ -5,14 +5,17 @@ use anchor_client::{
         pubkey::Pubkey,
         signer::Signer,
         commitment_config::CommitmentConfig,
-        system_program,
         sysvar::{rent, clock},
     },
 };
 use solana_client::rpc_client::RpcClient;
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, Context};
 use std::rc::Rc;
 use std::str::FromStr;
+
+/// BPF Upgradeable Loader program ID constant
+/// This is the native Solana program that handles upgradeable programs.
+pub const BPF_LOADER_UPGRADEABLE_ID: &str = "BPFLoaderUpgradeab1e11111111111111111111111";
 
 /// Result of a transaction execution
 #[derive(Debug, Clone)]
@@ -28,28 +31,37 @@ pub struct AnchorClient {
     pub payer: Rc<Keypair>,
     pub rpc_client: RpcClient,
     pub program_id: Pubkey,
+    bpf_loader_id: Pubkey,
 }
 
 impl AnchorClient {
     pub fn new(rpc_url: &str, program_id: &str, payer_path: &str) -> Result<Self> {
-        let payer = Rc::new(read_keypair_file(payer_path)?);
+        let payer = Rc::new(read_keypair_file(payer_path)
+            .context("Failed to read payer keypair file")?);
         let client = Client::new_with_options(
             Cluster::Custom(rpc_url.to_string(), rpc_url.to_string()),
             payer.clone(),
             CommitmentConfig::confirmed(),
         );
-        let program_id_pk = Pubkey::from_str(program_id)?;
-        let program = client.program(program_id_pk)?;
+        let program_id_pk = Pubkey::from_str(program_id)
+            .context("Invalid program ID")?;
+        let program = client.program(program_id_pk)
+            .context("Failed to create program client")?;
         let rpc_client = RpcClient::new_with_commitment(
             rpc_url.to_string(),
             CommitmentConfig::confirmed(),
         );
+        
+        // Parse BPF loader ID once at construction (no unwrap)
+        let bpf_loader_id = Pubkey::from_str(BPF_LOADER_UPGRADEABLE_ID)
+            .context("Invalid BPF loader program ID")?;
         
         Ok(Self { 
             program, 
             payer, 
             rpc_client,
             program_id: program_id_pk,
+            bpf_loader_id,
         })
     }
     
@@ -70,7 +82,7 @@ impl AnchorClient {
     fn get_program_data(&self, program: &Pubkey) -> Pubkey {
         let (pda, _) = Pubkey::find_program_address(
             &[program.as_ref()],
-            &Pubkey::from_str("BPFLoaderUpgradeab1e11111111111111111111111").unwrap(),
+            &self.bpf_loader_id,
         );
         pda
     }
@@ -86,29 +98,36 @@ impl AnchorClient {
         let (multisig_pda, _) = self.get_multisig_pda();
         let program_data = self.get_program_data(&program_to_upgrade);
         
-        // The BPF Upgradeable Loader address
-        let bpf_loader = Pubkey::from_str("BPFLoaderUpgradeab1e11111111111111111111111")?;
+        // Clone values needed for spawn_blocking
+        let program = self.program.clone();
+        let payer = self.payer.clone();
+        let bpf_loader = self.bpf_loader_id;
         
-        // Build and send the execute_upgrade instruction
-        let sig = self.program
-            .request()
-            .accounts(ExecuteUpgradeAccounts {
-                proposal: proposal_pda,
-                multisig_config: multisig_pda,
-                program_to_upgrade,
-                program_data,
-                buffer,
-                spill_account: self.payer.pubkey(),
-                executor: self.payer.pubkey(),
-                bpf_loader_upgradeable: bpf_loader,
-                rent: rent::id(),
-                clock: clock::id(),
-            })
-            .args(ExecuteUpgradeArgs {
-                proposal_id: proposal_pda,
-            })
-            .signer(&*self.payer)
-            .send()?;
+        // Use spawn_blocking to prevent blocking async runtime with sync RPC
+        let sig = tokio::task::spawn_blocking(move || {
+            program
+                .request()
+                .accounts(ExecuteUpgradeAccounts {
+                    proposal: proposal_pda,
+                    multisig_config: multisig_pda,
+                    program_to_upgrade,
+                    program_data,
+                    buffer,
+                    spill_account: payer.pubkey(),
+                    executor: payer.pubkey(),
+                    bpf_loader_upgradeable: bpf_loader,
+                    rent: rent::id(),
+                    clock: clock::id(),
+                })
+                .args(ExecuteUpgradeArgs {
+                    proposal_id: proposal_pda,
+                })
+                .signer(&*payer)
+                .send()
+        })
+        .await
+        .context("Task join error")?
+        .context("Transaction send failed")?;
         
         // Wait for confirmation
         let result = self.wait_for_confirmation(&sig).await?;
@@ -116,45 +135,62 @@ impl AnchorClient {
         Ok(result)
     }
     
-    /// Wait for transaction confirmation and return result
+    /// Wait for transaction confirmation and return result with accurate slot
     async fn wait_for_confirmation(&self, signature: &Signature) -> Result<TxResult> {
-        // Poll for confirmation with timeout
         let mut attempts = 0;
         const MAX_ATTEMPTS: u32 = 60; // 30 seconds with 500ms sleep
+        
+        // Clone RPC client URL for spawn_blocking
+        let sig = *signature;
         
         loop {
             attempts += 1;
             if attempts > MAX_ATTEMPTS {
                 return Ok(TxResult {
-                    signature: signature.to_string(),
+                    signature: sig.to_string(),
                     slot: 0,
                     success: false,
                     error_message: Some("Transaction confirmation timeout".to_string()),
                 });
             }
             
-            match self.rpc_client.get_signature_status(signature)? {
-                Some(status) => {
-                    let slot = self.rpc_client.get_slot()?;
-                    return match status {
-                        Ok(()) => Ok(TxResult {
-                            signature: signature.to_string(),
-                            slot,
-                            success: true,
-                            error_message: None,
-                        }),
-                        Err(err) => Ok(TxResult {
-                            signature: signature.to_string(),
-                            slot,
-                            success: false,
-                            error_message: Some(err.to_string()),
-                        }),
-                    };
-                }
-                None => {
-                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-                }
+            // Use spawn_blocking for synchronous RPC call
+            let rpc_url = self.rpc_client.url();
+            let sig_clone = sig;
+            
+            let status_result = tokio::task::spawn_blocking(move || {
+                let client = RpcClient::new_with_commitment(
+                    rpc_url,
+                    CommitmentConfig::confirmed(),
+                );
+                // Get signature statuses with history for accurate slot
+                client.get_signature_statuses_with_history(&[sig_clone])
+            })
+            .await
+            .context("Task join error")?
+            .context("RPC call failed")?;
+            
+            if let Some(Some(status)) = status_result.value.first() {
+                // Use the slot from the status response (accurate to transaction)
+                let tx_slot = status.slot;
+                
+                return match &status.err {
+                    None => Ok(TxResult {
+                        signature: sig.to_string(),
+                        slot: tx_slot,
+                        success: true,
+                        error_message: None,
+                    }),
+                    Some(err) => Ok(TxResult {
+                        signature: sig.to_string(),
+                        slot: tx_slot,
+                        success: false,
+                        error_message: Some(format!("{:?}", err)),
+                    }),
+                };
             }
+            
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
     }
     

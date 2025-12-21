@@ -63,9 +63,27 @@ pub async fn propose_upgrade(
     State(services): State<Arc<Services>>,
     Json(request): Json<ProposeRequest>,
 ) -> Result<Json<Value>, StatusCode> {
+    // Validate proposer pubkey
+    Pubkey::from_str(&request.proposer_pubkey).map_err(|e| {
+        tracing::error!("Invalid proposer pubkey: {}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+    
+    // Validate program pubkey
+    Pubkey::from_str(&request.program_id).map_err(|e| {
+        tracing::error!("Invalid program pubkey: {}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+    
+    // Validate buffer pubkey
+    Pubkey::from_str(&request.new_program_buffer).map_err(|e| {
+        tracing::error!("Invalid buffer pubkey: {}", e);
+        StatusCode::BAD_REQUEST
+    })?;
+    
     let proposal_id = Uuid::new_v4();
     
-    // Store in database (on-chain proposal is handled separately)
+    // Store in database with validated real values (no hardcoded placeholders)
     sqlx::query!(
         r#"
         INSERT INTO upgrade_proposals
@@ -73,8 +91,8 @@ pub async fn propose_upgrade(
         VALUES ($1, $2, $3, $4, $5, 'Proposed', 0)
         "#,
         proposal_id,
-        "system",
-        "program_id",
+        request.proposer_pubkey,
+        request.program_id,
         request.new_program_buffer,
         request.description
     )
@@ -97,26 +115,41 @@ pub async fn propose_upgrade(
 pub async fn approve_upgrade(
     State(services): State<Arc<Services>>,
     Path(id): Path<Uuid>,
-    Json(_request): Json<ApproveRequest>,
+    Json(request): Json<ApproveRequest>,
 ) -> Result<Json<Value>, StatusCode> {
-    // Record approval in database
+    // Validate approver keypair path exists (basic validation)
+    if request.approver_keypair_path.is_empty() {
+        tracing::error!("Empty approver keypair path");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
+    // Record approval in database using provided keypair path as identifier
     services.multisig_coordinator
-        .record_approval(id, "approver_pubkey".to_string())
+        .record_approval(id, request.approver_keypair_path.clone())
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            tracing::error!("Failed to record approval: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
     // Check if threshold met
     let threshold_met = services.multisig_coordinator
         .check_threshold(id, 3)
         .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            tracing::error!("Failed to check threshold: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
     
     if threshold_met {
         // Activate timelock in database
         services.timelock_manager
             .set_timelock(id, 48)
             .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .map_err(|e| {
+                tracing::error!("Failed to set timelock: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
     }
     
     Ok(Json(json!({
@@ -154,15 +187,27 @@ pub async fn execute_upgrade(
     
     // Verify status
     if proposal.status != "TimelockActive" {
+        tracing::warn!("Proposal {} has invalid status: {}", id, proposal.status);
         return Err(StatusCode::BAD_REQUEST);
     }
     
-    // Verify timelock expired (database check - on-chain also enforces)
-    if let Some(timelock_until) = proposal.timelock_until {
-        if timelock_until > chrono::Utc::now() {
-            tracing::warn!("Timelock not yet expired");
-            return Err(StatusCode::BAD_REQUEST);
+    // TIMELOCK INVARIANT CHECK: If status is TimelockActive, timelock_until MUST be set
+    let timelock_until = match proposal.timelock_until {
+        Some(t) => t,
+        None => {
+            tracing::error!(
+                "INVARIANT VIOLATION: Proposal {} has TimelockActive status but timelock_until is None. \
+                This indicates a database/application state inconsistency.",
+                id
+            );
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
         }
+    };
+    
+    // Verify timelock expired (database check - on-chain also enforces)
+    if timelock_until > chrono::Utc::now() {
+        tracing::warn!("Timelock not yet expired for proposal {}", id);
+        return Err(StatusCode::BAD_REQUEST);
     }
     
     // Parse pubkeys
@@ -195,8 +240,8 @@ pub async fn execute_upgrade(
     if !tx_result.success {
         tracing::error!("Transaction failed: {:?}", tx_result.error_message);
         
-        // Record failure in database
-        sqlx::query!(
+        // Record failure in database with explicit error logging
+        if let Err(db_err) = sqlx::query!(
             r#"
             UPDATE upgrade_proposals
             SET status = 'Failed',
@@ -213,7 +258,10 @@ pub async fn execute_upgrade(
         )
         .execute(&services.db_pool)
         .await
-        .ok(); // Best effort logging
+        {
+            tracing::error!("Failed to record transaction failure in database: {}", db_err);
+            // Continue - don't fail the request due to logging error
+        }
         
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
@@ -269,7 +317,10 @@ pub async fn cancel_upgrade(
     )
     .execute(&services.db_pool)
     .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    .map_err(|e| {
+        tracing::error!("Failed to cancel proposal: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
     
     Ok(Json(json!({
         "proposal_id": id,

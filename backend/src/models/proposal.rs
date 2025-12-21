@@ -26,6 +26,8 @@ pub struct Approval {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProposeRequest {
+    pub proposer_pubkey: String,
+    pub program_id: String,
     pub new_program_buffer: String,
     pub description: String,
 }

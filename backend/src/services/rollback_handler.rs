@@ -37,6 +37,11 @@ impl RollbackHandler {
     /// 
     /// This does NOT execute a rollback - it creates a record indicating
     /// that a rollback is needed, which should trigger manual intervention.
+    /// 
+    /// NOTE: The `requested_by` parameter is stored in the `executed_by` column.
+    /// This column serves dual purpose: storing the requester on initial request,
+    /// and can be updated to the actual executor when the rollback completes.
+    /// This design choice minimizes schema changes while maintaining audit trail.
     pub async fn request_rollback(
         &self,
         proposal_id: Uuid,
@@ -53,7 +58,7 @@ impl RollbackHandler {
             rollback_id,
             proposal_id,
             reason,
-            requested_by
+            requested_by  // Stored in executed_by column - see function docs
         )
         .execute(&self.db_pool)
         .await?;

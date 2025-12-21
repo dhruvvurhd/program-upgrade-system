@@ -82,10 +82,11 @@ pub fn handler(
     
     // BUFFER VALIDATION: Verify buffer has data (is not empty)
     let buffer_data = ctx.accounts.buffer.try_borrow_data()?;
-    // Buffer account header is 45 bytes (1 byte type + 44 bytes metadata)
-    // Actual program data starts after header
+    // Buffer account structure: 1 byte (account type) + 4 bytes (length) + 32 bytes (authority)
+    // Total metadata = 37 bytes. Actual program data starts after.
+    const BUFFER_METADATA_SIZE: usize = 37;
     require!(
-        buffer_data.len() > 45,
+        buffer_data.len() > BUFFER_METADATA_SIZE,
         ErrorCode::EmptyBuffer
     );
     drop(buffer_data); // Release borrow before CPI
