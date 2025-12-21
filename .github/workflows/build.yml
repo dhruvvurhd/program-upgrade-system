@@ -2,50 +2,33 @@ name: Build Solana Program
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, feature/ci-testing ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/gq-godark/gdx-golden-image:latest
 
     steps:
     - uses: actions/checkout@v4
 
-    # Install stable Rust (used for your program build)
-    - name: Install Rust Stable 1.78
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: 1.78.0
-        profile: minimal
-
-    # Install nightly Rust (required for Anchor CLI due to edition2024)
-    - name: Install Rust Nightly
-      uses: dtolnay/rust-toolchain@nightly
-
-    # Cache Cargo packages
-    - name: Cache Cargo Registry
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-        key: ${{ runner.os }}-cargo-anchor-${{ hashFiles('**/Cargo.lock') }}
-
-    # Install Solana CLI
-    - name: Install Solana
+    - name: Setup Rust
       run: |
-        sh -c "$(curl -sSfL https://release.anza.xyz/v1.18.17/install)"
-        echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+        # Use existing Rust installation from the image
+        export PATH="$HOME/.cargo/bin:$PATH"
+        rustup default stable || true
 
-    # Install Anchor CLI using nightly toolchain
-    - name: Install Anchor CLI
+    - name: Verify installations
       run: |
-        echo "Installing Anchor CLI (nightly)..."
-        export RUSTUP_TOOLCHAIN=nightly
-        cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli
+        export PATH="$HOME/.cargo/bin:$PATH"
+        rustc --version
+        cargo --version
+        export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"
+        solana --version
+        # Activate Anchor version manager - use 0.32.1 from golden image
+        yes | avm use 0.32.1 || true
         anchor --version
 
     # Remove AVM toolchain override to prevent version conflicts
@@ -55,10 +38,15 @@ jobs:
 
     # Build Anchor program using stable Rust
     - name: Build Program
+      env:
+        CARGO_NET_GIT_FETCH_WITH_CLI: true
       run: |
-        export PATH="$HOME/.cargo/bin:$PATH"
-        # force stable for program compilation
-        export RUSTUP_TOOLCHAIN=1.78.0
+        export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
+        yes | avm use 0.32.1 || true
+        # Force cargo to use stable Rust
+        export RUSTUP_TOOLCHAIN=stable
+        rustup override set stable || true
+        export ANCHOR_SKIP_RUST_INSTALL=1
         anchor build
 
     # Copy .so + IDL artifacts

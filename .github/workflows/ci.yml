@@ -36,8 +36,8 @@ jobs:
           cargo --version
           export PATH="$HOME/.local/share/solana/install/active_release/bin:$HOME/.cargo/bin:$PATH"
           solana --version
-          # Activate Anchor version manager - use 0.30.1 for this project
-          yes | avm use 0.30.1 || true
+          # Activate Anchor version manager - use 0.32.1 for this project
+          yes | avm use 0.32.1 || true
           anchor --version
 
       - name: Disable avm toolchain override
@@ -60,7 +60,7 @@ jobs:
           # Ensure system Rust is in PATH before Solana
           export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
           # Activate Anchor version manager
-          yes | avm use 0.30.1 || true
+          yes | avm use 0.32.1 || true
           # Force cargo to use stable Rust
           export RUSTUP_TOOLCHAIN=stable
           # Set rustup override to ensure stable is used
@@ -134,7 +134,7 @@ jobs:
       - name: Deploy Program
         run: |
           export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          yes | avm use 0.30.1 || true
+          yes | avm use 0.32.1 || true
           export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
           export ANCHOR_WALLET=~/.config/solana/id.json
           anchor deploy
@@ -142,7 +142,7 @@ jobs:
       - name: Run Tests
         run: |
           export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
-          yes | avm use 0.30.1 || true
+          yes | avm use 0.32.1 || true
           export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
           export ANCHOR_WALLET=~/.config/solana/id.json
 

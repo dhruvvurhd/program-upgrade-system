@@ -117,7 +117,7 @@ if [ $PREREQS_FAILED -eq 1 ]; then
     echo "Installation commands:"
     echo "  Solana:  sh -c \"\$(curl -sSfL https://release.anza.xyz/v1.18.17/install)\""
     echo "  Anchor:  cargo install --git https://github.com/coral-xyz/anchor avm --locked --force"
-    echo "           avm install 0.30.1 && avm use 0.30.1"
+    echo "           avm install 0.32.1 && avm use 0.32.1"
     echo "  Node.js: Install via nvm or package manager"
     exit 1
 fi

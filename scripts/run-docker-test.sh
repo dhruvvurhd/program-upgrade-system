@@ -36,7 +36,7 @@ docker run --rm \
         echo "📦 Installing Anchor CLI..."
         curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y > /dev/null 2>&1
         source ~/.cargo/env
-        cargo install --git https://github.com/coral-xyz/anchor --tag v0.30.1 anchor-cli 2>&1 | tail -5
+        cargo install --git https://github.com/coral-xyz/anchor --tag v0.32.1 anchor-cli 2>&1 | tail -5
         echo "✅ Anchor version: $(anchor --version)"
         
         echo ""
