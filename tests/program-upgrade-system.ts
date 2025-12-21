@@ -153,6 +153,7 @@ describe("program-upgrade-system", () => {
         canceller: anchor.getProvider().publicKey, // Must be a member
         buffer: cancelBuffer, // Required by instruction constraint
         rentRecipient: anchor.getProvider().publicKey,
+        bpfLoaderUpgradeable: new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
       })
       .rpc();
 
@@ -281,6 +282,7 @@ describe("program-upgrade-system", () => {
           canceller: anchor.getProvider().publicKey,
           buffer: cancelBuffer2,
           rentRecipient: anchor.getProvider().publicKey,
+          bpfLoaderUpgradeable: new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
         })
         .rpc();
 
@@ -294,6 +296,7 @@ describe("program-upgrade-system", () => {
             canceller: anchor.getProvider().publicKey,
             buffer: cancelBuffer2,
             rentRecipient: anchor.getProvider().publicKey,
+            bpfLoaderUpgradeable: new anchor.web3.PublicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
           })
           .rpc();
         throw new Error("Should have failed - double cancel");

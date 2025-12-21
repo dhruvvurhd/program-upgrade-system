@@ -37,5 +37,5 @@ pub struct ApproveRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecuteRequest {
-    pub executor_keypair_path: String,
+    pub program_id: String,
 }

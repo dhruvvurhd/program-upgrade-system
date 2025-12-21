@@ -1,4 +1,8 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::{
+    bpf_loader_upgradeable,
+    program::invoke_signed,
+};
 use crate::state::*;
 use crate::error::ErrorCode;
 use crate::events::*;
@@ -23,13 +27,16 @@ pub struct CancelUpgrade<'info> {
     #[account(mut)]
     pub canceller: Signer<'info>,
     
-    /// CHECK: Buffer account to close and refund
+    /// CHECK: Buffer account to close and refund. Must be owned by BPF Loader.
     #[account(mut)]
     pub buffer: UncheckedAccount<'info>,
     
-    /// CHECK: Rent recipient
+    /// CHECK: Rent recipient for buffer close
     #[account(mut)]
     pub rent_recipient: UncheckedAccount<'info>,
+    
+    /// CHECK: BPF Loader Upgradeable Program
+    pub bpf_loader_upgradeable: UncheckedAccount<'info>,
 }
 
 pub fn handler(
@@ -41,16 +48,55 @@ pub fn handler(
     let proposal = &mut ctx.accounts.proposal;
     let clock = Clock::get()?;
     
+    // Verify buffer matches proposal
+    require!(
+        ctx.accounts.buffer.key() == proposal.new_program_buffer,
+        ErrorCode::InvalidProgramBuffer
+    );
+    
+    // Verify buffer is owned by BPF Loader (might already be closed)
+    let bpf_loader_id = bpf_loader_upgradeable::id();
+    let buffer_owned_by_loader = ctx.accounts.buffer.owner == &bpf_loader_id;
+    
+    // Close buffer account via CPI if it's still owned by loader
+    if buffer_owned_by_loader && !ctx.accounts.buffer.data_is_empty() {
+        // Build close instruction
+        // The multisig PDA must be the buffer authority for this to work
+        let close_instruction = bpf_loader_upgradeable::close_any(
+            &ctx.accounts.buffer.key(),
+            &ctx.accounts.rent_recipient.key(),
+            Some(&ctx.accounts.multisig_config.key()),
+            None, // No program to close
+        );
+        
+        let multisig_seeds = &[
+            SEED_MULTISIG,
+            &[ctx.accounts.multisig_config.bump],
+        ];
+        
+        // Invoke close with multisig PDA as signer
+        invoke_signed(
+            &close_instruction,
+            &[
+                ctx.accounts.buffer.to_account_info(),
+                ctx.accounts.rent_recipient.to_account_info(),
+                ctx.accounts.multisig_config.to_account_info(),
+            ],
+            &[multisig_seeds],
+        )?;
+        
+        msg!("Buffer account closed, rent refunded to {}", ctx.accounts.rent_recipient.key());
+    } else {
+        msg!("Buffer already closed or not owned by loader, skipping close");
+    }
+    
     // Update proposal state
     proposal.status = UpgradeStatus::Cancelled;
-    
-    // Close buffer account and refund rent
-    // In production, you would invoke close buffer instruction via CPI
     
     emit!(UpgradeCancelledEvent {
         proposal_id: proposal.id,
         canceller: ctx.accounts.canceller.key(),
-        reason: "Cancelled by multisig".to_string(),
+        reason: "Cancelled by multisig member".to_string(),
         timestamp: clock.unix_timestamp,
     });
     
