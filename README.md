@@ -145,8 +145,11 @@ PAYER_KEYPAIR_PATH=/path/to/keypair.json
 ## Documentation
 
 - [GDX DEX Integration Plan](docs/GDX-DEX-UPGRADE-INTEGRATION-PLAN.md)
-- [BPF Loader Verification](docs/bpf-loader-verification.md)
-- [Code Completeness Evaluation](docs/code-completeness-evaluation.md)
+- [Architecture](docs/architecture.md)
+- [Governance Model](docs/governance.md)
+- [API Reference](docs/api-reference.md)
+- [Migration Guide](docs/migration-guide.md)
+- [Testing Guide](docs/testing-guide.md)
 
 ---
 
