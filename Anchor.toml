@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-program_upgrade_system = "EWkUZhSovRmxtyGYB7hgnb3LSfb9Z5XdrZtPJEeDiG1H"
+program_upgrade_system = "BPeh5RUhTQbh637q8gGaGrasETYPcinBXqVKxutTB9v5"
 
 [registry]
 url = "https://api.apr.dev"

@@ -12,7 +12,7 @@ pub use instructions::*;
 pub use state::*;
 pub use events::*;
 
-declare_id!("EWkUZhSovRmxtyGYB7hgnb3LSfb9Z5XdrZtPJEeDiG1H");
+declare_id!("BPeh5RUhTQbh637q8gGaGrasETYPcinBXqVKxutTB9v5");
 
 #[program]
 pub mod program_upgrade_system {

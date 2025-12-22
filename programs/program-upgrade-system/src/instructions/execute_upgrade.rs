@@ -73,6 +73,28 @@ pub fn handler(
         ErrorCode::InvalidProgramBuffer
     );
     
+    // BUFFER VALIDATION: Verify buffer is owned by BPF Upgradeable Loader
+    let bpf_loader_id = bpf_loader_upgradeable::id();
+    require!(
+        ctx.accounts.buffer.owner == &bpf_loader_id,
+        ErrorCode::InvalidBufferOwner
+    );
+    
+    // BUFFER VALIDATION: Verify buffer has data (is not empty)
+    let buffer_data = ctx.accounts.buffer.try_borrow_data()?;
+    // Buffer account structure: 1 byte (account type) + 4 bytes (length) + 32 bytes (authority)
+    // Total metadata = 37 bytes. Actual program data starts after.
+    const BUFFER_METADATA_SIZE: usize = 37;
+    require!(
+        buffer_data.len() > BUFFER_METADATA_SIZE,
+        ErrorCode::EmptyBuffer
+    );
+    drop(buffer_data); // Release borrow before CPI
+    
+    // NOTE: Buffer authority validation is enforced by the BPF Loader itself
+    // during the upgrade CPI - it will fail if authority doesn't match.
+    // The multisig PDA must be set as buffer authority before this instruction.
+    
     let clock = Clock::get()?;
     
     // Execute upgrade via CPI to BPF Loader Upgradeable

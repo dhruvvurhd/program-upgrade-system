@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use crate::state::*;
-use crate::error::ErrorCode;
 use crate::events::*;
 use crate::constants::*;
 use crate::utils::*;

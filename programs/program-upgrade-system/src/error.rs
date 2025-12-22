@@ -61,4 +61,13 @@ pub enum ErrorCode {
     
     #[msg("Not a multisig member")]
     NotAMember,
+    
+    #[msg("Buffer not owned by BPF Upgradeable Loader")]
+    InvalidBufferOwner,
+    
+    #[msg("Buffer authority does not match multisig")]
+    InvalidBufferAuthority,
+    
+    #[msg("Buffer is empty or contains no program data")]
+    EmptyBuffer,
 }
