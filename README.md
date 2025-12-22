@@ -1,6 +1,6 @@
 # Program Upgrade System
 
-**Production-ready governance layer for Solana program upgrades with multisig approval and timelock protection.**
+Governance layer for Solana program upgrades with multisig approval and timelock protection.
 
 [![Tests](https://img.shields.io/badge/tests-12%20passing-brightgreen)](tests/)
 [![Solana](https://img.shields.io/badge/Solana-v1.18+-blueviolet)](https://solana.com/)
@@ -16,11 +16,11 @@ A governance system that enforces multisig approval and 48-hour timelocks before
 
 | Feature | Description |
 |---------|-------------|
-| **Multisig Governance** | Configurable N-of-M threshold (e.g., 3-of-5) |
-| **48-Hour Timelock** | On-chain enforced, cannot be bypassed |
-| **Buffer Validation** | Verifies BPF Loader ownership before upgrade |
-| **Emergency Pause** | Any member can halt operations instantly |
-| **Migration Tracking** | Account version tracking via PDAs |
+| Multisig Governance | Configurable N-of-M threshold (e.g., 3-of-5) |
+| 48-Hour Timelock | On-chain enforced, cannot be bypassed |
+| Buffer Validation | Verifies BPF Loader ownership before upgrade |
+| Emergency Pause | Any member can halt operations instantly |
+| Migration Tracking | Account version tracking via PDAs |
 
 ---
 
@@ -30,7 +30,7 @@ A governance system that enforces multisig approval and 48-hour timelocks before
 # Install dependencies
 yarn install
 
-# Run tests (12 passing)
+# Run tests
 anchor test
 ```
 
@@ -51,15 +51,15 @@ anchor test
 
 ---
 
-## Security Guarantees (On-Chain Enforced)
+## Security Guarantees
 
-| Rule | Status |
-|------|--------|
-| Multisig membership | ✅ Enforced |
-| Approval threshold | ✅ Enforced |
-| 48-hour timelock | ✅ Enforced |
-| Buffer ownership (BPF Loader) | ✅ Enforced |
-| Duplicate approval prevention | ✅ Enforced |
+All validations are enforced on-chain:
+
+- Multisig membership verification
+- Approval threshold requirement
+- 48-hour timelock enforcement
+- Buffer ownership validation (BPF Loader)
+- Duplicate approval prevention
 
 ---
 
@@ -85,39 +85,13 @@ program-upgrade-system/
 
 ## Upgrade Workflow
 
-```
 1. Build new program version
-2. Create buffer: solana program write-buffer ./program.so
+2. Create buffer: `solana program write-buffer ./program.so`
 3. Set buffer authority to multisig PDA
 4. Propose upgrade via API
-5. 3 of 5 members approve
+5. Collect required approvals (e.g., 3 of 5)
 6. Wait 48 hours (timelock)
 7. Execute upgrade
-```
-
----
-
-## Test Results
-
-```
-  program-upgrade-system
-    ✔ Is initialized!
-    ✔ Proposes an upgrade
-    ✔ Approves an upgrade (timelock activates)
-    ✔ Executes an upgrade (simulation)
-    ✔ Cancels an upgrade
-    ✔ Migrates an account
-    Edge Cases
-      ✔ Prevents duplicate approval
-      ✔ Prevents double cancel
-      ✔ Verifies proposal state after approval
-    Pause/Resume System
-      ✔ Pauses the system
-      ✔ Resumes the system
-      ✔ Prevents double pause
-
-  12 passing
-```
 
 ---
 

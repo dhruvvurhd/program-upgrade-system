@@ -1,6 +1,6 @@
 # GDX DEX - Program Upgrade System Integration
 
-Comprehensive implementation plan for integrating the Program Upgrade System with all GDX smart contracts to enable governed, timelocked upgrades.
+Implementation plan for integrating the Program Upgrade System with GDX smart contracts to enable governed, timelocked upgrades.
 
 ---
 
@@ -10,24 +10,24 @@ The GDX DEX has **7 Solana smart contracts** that currently have no upgrade gove
 
 ---
 
-## What We've Built: Program Upgrade System ✅
+## Program Upgrade System Overview
 
-The **Program Upgrade System** is a **production-ready governance layer** that we have completed as part of the GoQuant assignment. This system is now ready to be integrated with the GDX DEX.
+The Program Upgrade System is a governance layer completed as part of the GoQuant assignment. This system is designed to be integrated with the GDX DEX.
 
-### Completed Components
+### Components
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| **Anchor Smart Contract** | ✅ Complete | 8 instructions for full upgrade lifecycle |
-| **Multisig Governance** | ✅ Complete | Configurable N-of-M threshold (e.g., 3-of-5) |
-| **48-Hour Timelock** | ✅ Complete | On-chain enforced, cannot be bypassed |
-| **Emergency Pause/Resume** | ✅ Complete | Any member can halt operations instantly |
-| **Buffer Validation** | ✅ Complete | Verifies BPF Loader ownership before upgrade |
-| **Account Migration Tracking** | ✅ Complete | `AccountVersion` PDA for version tracking |
-| **Rust Backend Service** | ✅ Complete | Axum REST API with PostgreSQL |
-| **Test Suite** | ✅ 12 tests passing | Full coverage of upgrade lifecycle |
+| Anchor Smart Contract | Complete | 8 instructions for full upgrade lifecycle |
+| Multisig Governance | Complete | Configurable N-of-M threshold (e.g., 3-of-5) |
+| 48-Hour Timelock | Complete | On-chain enforced, cannot be bypassed |
+| Emergency Pause/Resume | Complete | Any member can halt operations instantly |
+| Buffer Validation | Complete | Verifies BPF Loader ownership before upgrade |
+| Account Migration Tracking | Complete | AccountVersion PDA for version tracking |
+| Rust Backend Service | Complete | Axum REST API with PostgreSQL |
+| Test Suite | Complete | 12 tests passing, full coverage of upgrade lifecycle |
 
-### Smart Contract Instructions (Ready to Use)
+### Smart Contract Instructions
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -61,9 +61,9 @@ The **Program Upgrade System** is a **production-ready governance layer** that w
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### On-Chain Security Guarantees (Already Implemented)
+### On-Chain Security Guarantees
 
-All critical validations are **enforced on-chain** and **cannot be bypassed**:
+All critical validations are enforced on-chain and cannot be bypassed:
 
 | Security Check | Code Location | What It Does |
 |----------------|---------------|--------------|
@@ -75,7 +75,7 @@ All critical validations are **enforced on-chain** and **cannot be bypassed**:
 | Duplicate approval | `approve_upgrade.rs` | Same member cannot vote twice |
 | System pause | All instructions | Operations blocked when paused |
 
-### Execute Upgrade: Production-Ready BPF CPI
+### Execute Upgrade: BPF CPI
 
 The `execute_upgrade` instruction performs a **real CPI to the BPF Upgradeable Loader**:
 
