@@ -1,132 +1,69 @@
-A# Program Upgrade & Migration System
+# Program Upgrade System
 
-A governance layer for Solana program upgrades with multisig approval, timelock protection, and migration tracking.
+Governance layer for Solana program upgrades with multisig approval and timelock protection.
+
+[![Tests](https://img.shields.io/badge/tests-12%20passing-brightgreen)](tests/)
+[![Solana](https://img.shields.io/badge/Solana-v1.18+-blueviolet)](https://solana.com/)
+[![Anchor](https://img.shields.io/badge/Anchor-0.32.1-blue)](https://anchor-lang.com/)
+
+---
+
+## Overview
+
+A governance system that enforces multisig approval and 48-hour timelocks before any Solana program can be upgraded. Prevents unilateral upgrades and gives users time to exit positions before changes take effect.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| Multisig Governance | Configurable N-of-M threshold (e.g., 3-of-5) |
+| 48-Hour Timelock | On-chain enforced, cannot be bypassed |
+| Buffer Validation | Verifies BPF Loader ownership before upgrade |
+| Emergency Pause | Any member can halt operations instantly |
+| Migration Tracking | Account version tracking via PDAs |
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone and install
-git clone <repository>
-cd program-upgrade-system
+# Install dependencies
 yarn install
 
-# Run tests (12 passing)
+# Run tests
 anchor test
 ```
 
 ---
 
-## Local Verification
+## Smart Contract Instructions
 
-Verify the complete upgrade flow on a local validator:
-
-```bash
-# 1. Start local validator
-solana-test-validator
-
-# 2. Build and deploy
-anchor build
-anchor deploy
-
-# 3. Run test suite
-anchor test --skip-local-validator
-
-# Expected output:
-#   12 passing (9s)
-#   - Is initialized!
-#   - Proposes an upgrade
-#   - Approves an upgrade (timelock activates)
-#   - Executes an upgrade (simulation - fails timelock as expected)
-#   - Cancels an upgrade
-#   - Migrates an account
-#   - Edge cases + Pause/Resume tests
-```
+| Instruction | Purpose |
+|-------------|---------|
+| `initialize_multisig` | Set up governance with members and threshold |
+| `propose_upgrade` | Create upgrade proposal with buffer pubkey |
+| `approve_upgrade` | Vote to approve a proposal |
+| `execute_upgrade` | Execute upgrade after timelock expires |
+| `cancel_upgrade` | Cancel proposal and close buffer |
+| `migrate_account` | Track account version migration |
+| `pause_system` | Emergency halt all operations |
+| `resume_system` | Resume after pause |
 
 ---
 
-## System Boundaries
+## Security Guarantees
 
-### On-Chain Enforcement (Production-Ready)
+All validations are enforced on-chain:
 
-The Anchor smart contract enforces security rules that **cannot be bypassed**:
-
-| Rule | Enforcement |
-|------|-------------|
-| Multisig membership | `validate_multisig_member()` |
-| Approval threshold | `validate_threshold()` |
-| 48-hour timelock | `validate_timelock_expired()` |
-| Buffer ownership | `buffer.owner == bpf_loader_id` |
-| Buffer data validation | `buffer_data.len() > 45` |
-| Duplicate approval | `!approvals.contains(&approver)` |
-
-### Backend Orchestration (Tracking & Coordination)
-
-| Function | Status | Description |
-|----------|--------|-------------|
-| Execute upgrade | ✅ Real RPC | Submits transaction, waits for confirmation |
-| Proposal tracking | ✅ Database | Records proposals, approvals, execution |
-| Migration tracking | ✅ Database | Progress tracking only |
-| Rollback | ⚠️ Conceptual | Request tracking, requires manual action |
+- Multisig membership verification
+- Approval threshold requirement
+- 48-hour timelock enforcement
+- Buffer ownership validation (BPF Loader)
+- Duplicate approval prevention
 
 ---
 
-## What Is Production-Ready
-
-1. **Smart contract logic** - All validations enforced on-chain
-2. **Execute upgrade path** - Real Solana RPC with confirmation
-3. **Buffer validation** - Verifies owner and data before CPI
-4. **Buffer close on cancel** - Real CPI to `bpf_loader_upgradeable::close_any()`
-
-## What Is Intentionally Not Implemented
-
-| Feature | Reason |
-|---------|--------|
-| Buffer creation/writes | External tooling (`solana program write-buffer`) |
-| Automatic rollback | Requires pre-stored binaries, bypasses governance |
-| Data migration | Protocol-specific, differs per project |
-| Propose/Approve RPC | MVP scope - follows same pattern as execute |
-
----
-
-## Buffer Assumptions
-
-> **This system assumes program buffers are created and populated off-chain using Solana CLI or CI tooling.**
-
-Before proposing an upgrade:
-
-```bash
-# Build program
-anchor build
-
-# Create and populate buffer (multi-transaction)
-solana program write-buffer ./target/deploy/your_program.so
-
-# Set buffer authority to multisig PDA
-solana program set-buffer-authority <BUFFER> --new-buffer-authority <MULTISIG_PDA>
-```
-
----
-
-## Rollback Policy
-
-**Automatic rollback is intentionally not supported.**
-
-Why:
-- Previous program binaries must be stored externally
-- Automatic rollback bypasses governance (security risk)
-- Users expect 48-hour window before any change
-
-Manual rollback process:
-1. Pause system (`pause_system` instruction)
-2. Create new buffer with previous program version
-3. Submit new upgrade proposal
-4. Complete normal governance flow
-
----
-
-## Project Structure
+## Architecture
 
 ```
 program-upgrade-system/
@@ -134,39 +71,37 @@ program-upgrade-system/
 │   └── src/
 │       ├── instructions/              # 8 instruction handlers
 │       ├── state/                     # Account structures
-│       ├── error.rs                   # Error codes
 │       └── utils.rs                   # Validation helpers
 ├── backend/                           # Rust REST API
 │   └── src/
 │       ├── api/                       # HTTP endpoints
 │       ├── clients/                   # Solana RPC client
 │       └── services/                  # Business logic
-├── tests/                             # TypeScript tests (12 passing)
+├── tests/                             # TypeScript tests
 └── docs/                              # Documentation
 ```
 
 ---
 
-## Test Results
+## Upgrade Workflow
 
-```
-  program-upgrade-system
-    ✔ Is initialized!
-    ✔ Proposes an upgrade
-    ✔ Approves an upgrade (timelock activates)
-    ✔ Executes an upgrade (simulation)
-    ✔ Cancels an upgrade
-    ✔ Migrates an account
-    Edge Cases
-      ✔ Prevents duplicate approval
-      ✔ Prevents double cancel
-      ✔ Verifies proposal state after approval
-    Pause/Resume System
-      ✔ Pauses the system
-      ✔ Resumes the system
-      ✔ Prevents double pause
+1. Build new program version
+2. Create buffer: `solana program write-buffer ./program.so`
+3. Set buffer authority to multisig PDA
+4. Propose upgrade via API
+5. Collect required approvals (e.g., 3 of 5)
+6. Wait 48 hours (timelock)
+7. Execute upgrade
 
-  12 passing (9s)
+---
+
+## Environment Variables
+
+```env
+DATABASE_URL=postgresql://user:pass@localhost/upgrade_system
+RPC_URL=http://localhost:8899
+PROGRAM_ID=BPeh5RUhTQbh637q8gGaGrasETYPcinBXqVKxutTB9v5
+PAYER_KEYPAIR_PATH=/path/to/keypair.json
 ```
 
 ---
@@ -181,16 +116,17 @@ program-upgrade-system/
 
 ---
 
-## Verdict
+## Documentation
 
-**SUBMISSION-READY: PRODUCTION-REALISTIC (MVP)**
+- [GDX DEX Integration Plan](docs/GDX-DEX-UPGRADE-INTEGRATION-PLAN.md)
+- [Architecture](docs/architecture.md)
+- [Governance Model](docs/governance.md)
+- [API Reference](docs/api-reference.md)
+- [Migration Guide](docs/migration-guide.md)
+- [Testing Guide](docs/testing-guide.md)
 
-| Component | Status |
-|-----------|--------|
-| Smart Contract | ✅ Production-ready |
-| Execute Upgrade | ✅ Real RPC |
-| Buffer Validation | ✅ On-chain |
-| Buffer Close | ✅ Real CPI |
-| Tests | ✅ 12 passing |
-| Migration | ⚠️ Tracking only |
-| Rollback | ⚠️ Conceptual |
+---
+
+## License
+
+MIT
