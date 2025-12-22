@@ -140,8 +140,12 @@ impl AnchorClient {
         let mut attempts = 0;
         const MAX_ATTEMPTS: u32 = 60; // 30 seconds with 500ms sleep
         
-        // Clone RPC client URL for spawn_blocking
         let sig = *signature;
+        
+        // Clone URL once before loop - RpcClient (sync) cannot be shared across threads
+        // but URL cloning is cheap. RpcClient construction inside spawn_blocking is 
+        // necessary because the sync client is not Send.
+        let rpc_url = self.rpc_client.url();
         
         loop {
             attempts += 1;
@@ -154,16 +158,17 @@ impl AnchorClient {
                 });
             }
             
-            // Use spawn_blocking for synchronous RPC call
-            let rpc_url = self.rpc_client.url();
+            // Clone URL for this iteration (cheap string clone)
+            let url_clone = rpc_url.clone();
             let sig_clone = sig;
             
+            // RpcClient must be created inside spawn_blocking because 
+            // solana_client::rpc_client::RpcClient is not Send
             let status_result = tokio::task::spawn_blocking(move || {
                 let client = RpcClient::new_with_commitment(
-                    rpc_url,
+                    url_clone,
                     CommitmentConfig::confirmed(),
                 );
-                // Get signature statuses with history for accurate slot
                 client.get_signature_statuses_with_history(&[sig_clone])
             })
             .await
@@ -171,7 +176,6 @@ impl AnchorClient {
             .context("RPC call failed")?;
             
             if let Some(Some(status)) = status_result.value.first() {
-                // Use the slot from the status response (accurate to transaction)
                 let tx_slot = status.slot;
                 
                 return match &status.err {
