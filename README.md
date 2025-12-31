@@ -6,6 +6,8 @@ Governance layer for Solana program upgrades with multisig approval and timelock
 [![Solana](https://img.shields.io/badge/Solana-v1.18+-blueviolet)](https://solana.com/)
 [![Anchor](https://img.shields.io/badge/Anchor-0.32.1-blue)](https://anchor-lang.com/)
 
+> **📋 [View Test Verification Report](TEST-VERIFICATION.md)** — Proof that all tests run real on-chain transactions with transaction signatures.
+
 ---
 
 ## Overview
