@@ -1341,6 +1341,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "target-program"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"

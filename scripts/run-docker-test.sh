@@ -34,6 +34,8 @@ docker run --rm \
         
         echo ""
         echo "📦 Installing Anchor CLI..."
+        # Force Rust to use system OpenSSL
+        export RUSTFLAGS="-C target-feature=+crt-static"
         curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y > /dev/null 2>&1
         source ~/.cargo/env
         cargo install --git https://github.com/coral-xyz/anchor --tag v0.32.1 anchor-cli 2>&1 | tail -5

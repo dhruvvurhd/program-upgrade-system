@@ -69,4 +69,8 @@ pub mod program_upgrade_system {
     pub fn resume_system(ctx: Context<ResumeSystem>) -> Result<()> {
         instructions::resume_system::handler(ctx)
     }
+
+    pub fn set_buffer_authority(ctx: Context<SetBufferAuthority>) -> Result<()> {
+        instructions::set_buffer_authority::handler(ctx)
+    }
 }
