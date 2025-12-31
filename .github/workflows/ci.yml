@@ -41,7 +41,13 @@ jobs:
 
       - name: Disable avm toolchain override
         run: |
+          # Convert CRLF to LF first (Windows line endings cause issues)
+          sed -i 's/\r$//' Anchor.toml
+          # Remove the toolchain section to prevent avm auto-install
           sed -i '/\[toolchain\]/,/^$/d' Anchor.toml || true
+          # Show the resulting file for debugging
+          echo "=== Anchor.toml after processing ==="
+          cat Anchor.toml
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
